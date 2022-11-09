@@ -1,12 +1,9 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var session = require('express-session');
-var FileStore = require('session-file-store')(session);
 var passport = require('passport');
-var authenticate = require('./authenticate');
+var config = require('./config');
 
 const mongoose = require('mongoose');
 
@@ -18,9 +15,10 @@ var topperRouter = require('./routes/topperRouter');
 var placementRouter = require('./routes/placementRouter');
 var postRouter = require('./routes/postRouter');
 var announceRouter = require('./routes/announcementRouter');
+var uploadRouter = require('./routes/uploadRouter');
 
 //Database connection
-const url = 'mongodb://localhost:27017/mca';
+const url = config.mongoUrl;
 const connect = mongoose.connect(url);
 
 connect.then((db) => {
@@ -37,36 +35,11 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-//app.use(cookieParser('12345-67890-09876-54321'));
-
-app.use(session({
-  name: 'session-id',
-  secret: '12345-67890-09876-54321',
-  saveUninitialized: false,
-  resave: false,
-  store: new FileStore()
-}));
 
 app.use(passport.initialize());
-app.use(passport.session());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-
-//Basic Authentication
-function auth(req, res, next){
-  if(!req.user){
-    var err = new Error('You are not authenticated!');
-    res.setHeader('WWW-Authenticate', 'Basic');
-    err.status = 403;
-    return next(err);
-  }
-    else {
-      next();
-    }
-  }
-
-app.use(auth);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -74,6 +47,7 @@ app.use('/toppers', topperRouter);
 app.use('/placements', placementRouter);
 app.use('/posts', postRouter);
 app.use('/announcements', announceRouter);
+app.use('/imageUpload', uploadRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

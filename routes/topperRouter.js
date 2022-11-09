@@ -1,5 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const authenticate = require('../authenticate');
+const cors = require('./cors');
+
+const Toppers = require('../models/toppers');
 
 const topperRouter = express.Router();
 
@@ -7,27 +11,40 @@ topperRouter.use(bodyParser.json());
 
 
 topperRouter.route('/')
-.all((req, res, next) => {
-    res.statusCode = 200;
-    res.setHeader('Content-Type','text/plain')
-    next();
-})
-
 .get((req, res, next) => {
-    res.end('Will send all the toppers to you!!');
+    Toppers.find({})
+    .then((topper) => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(topper);
+    },(err) => next(err))
+    .catch((err) => next(err));
 })
 
-.post((req, res, next) => {
-    res.end('Will add the topper: ' +req.body.name+' with details: ' +req.body.description);
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    Toppers.create(req.body)
+    .then((topper) => {
+        console.log('Topper Created', topper);
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(topper);
+    }, (err) => next(err))
+    .catch((err) => next(err));
 })
 
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /toppers');
 })
 
-.delete((req, res, next) => {
-    res.end('Deleting all the toppers!');
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    Toppers.remove({})
+    .then((resp)=> {
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(resp);
+    }, (err) => next(err))
+    .catch((err) => next(err));    
 })
 
 module.exports = topperRouter;

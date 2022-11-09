@@ -1,28 +1,27 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-
-const postSchema = new Schema({
-    description:{
+const feedbackSchema = new Schema({
+    Name:{
         type:String,
         required: true
     },
-    image:{
+    telnum:{
         type: String,
         default: ''
     },
-    content:{
+    email:{
         type: String,
         default: ''
     },
-    author:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }
+    message:{
+        type: String,
+        default: ''
+    },
     },{
         timestamps: true
 });
 
-var Posts = mongoose.model('Post', postSchema);
+var Feedbacks = mongoose.model('Feedback', feedbackSchema);
 
-module.exports = Posts;
+module.exports = Feedbacks;

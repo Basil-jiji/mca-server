@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const Announcements = require('../models/announcements');
+const authenticate = require('../authenticate');
 
 const announceRouter = express.Router();
 
@@ -17,7 +18,7 @@ announceRouter.route('/')
     .catch((err) => next(err));
 })
 
-.post((req, res, next) => {
+.post(authenticate.verifyUser, (req, res, next) => {
     Announcements.create(req.body)
     .then((announcement) => {
         console.log('Post Created', announcement);
@@ -28,12 +29,12 @@ announceRouter.route('/')
     .catch((err) => next(err));
 })
 
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /announcements');
 })
 
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Announcements.remove({})
     .then((resp)=> {
         res.statusCode = 200;
@@ -55,12 +56,12 @@ announceRouter.route('/:announceId')
     .catch((err) => next(err));
 })
 
-.post((req, res, next) => {
+.post(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
     res.end('POST operation not supported on /announcements/'+ req.params.announceId);
 })
 
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     Announcements.findByIdAndUpdate(req.params.announceId, {
         $set: req.body
     }, {new :true}) //return updated announcement
@@ -73,7 +74,7 @@ announceRouter.route('/:announceId')
     .catch((err) => next(err));
 })
 
-.delete((req, res, next) =>{
+.delete(authenticate.verifyUser, (req, res, next) =>{
     Announcements.findByIdAndRemove(req.params.announceId)
     .then((resp)=> {
         res.statusCode = 200;

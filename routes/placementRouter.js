@@ -1,5 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const authenticate = require('../authenticate');
+const cors = require('./cors');
+
+const Placements = require('../models/placements');
 
 const placementRouter = express.Router();
 
@@ -7,27 +11,40 @@ placementRouter.use(bodyParser.json());
 
 
 placementRouter.route('/')
-.all((req, res, next) => {
-    res.statusCode = 200;
-    res.setHeader('Content-Type','text/plain')
-    next();
-})
-
 .get((req, res, next) => {
-    res.end('Will send all the placements to you!!');
+    Placements.find({})
+    .then((placement) => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(placement);
+    },(err) => next(err))
+    .catch((err) => next(err));
 })
 
-.post((req, res, next) => {
-    res.end('Will add the placement: ' +req.body.name+' with details: ' +req.body.description);
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    Placements.create(req.body)
+    .then((placement) => {
+        console.log('Placement Created', placement);
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(placement);
+    }, (err) => next(err))
+    .catch((err) => next(err));
 })
 
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /placements');
 })
 
-.delete((req, res, next) => {
-    res.end('Deleting all the placements!');
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    Placements.remove({})
+    .then((resp)=> {
+        res.statusCode = 200;
+        res.setHeader('Content-Type','application/json');
+        res.json(resp);
+    }, (err) => next(err))
+    .catch((err) => next(err));    
 })
 
 module.exports = placementRouter;
