@@ -18,7 +18,7 @@ announceRouter.route('/')
     .catch((err) => next(err));
 })
 
-.post(authenticate.verifyUser, (req, res, next) => {
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Announcements.create(req.body)
     .then((announcement) => {
         console.log('Post Created', announcement);
@@ -29,12 +29,12 @@ announceRouter.route('/')
     .catch((err) => next(err));
 })
 
-.put(authenticate.verifyUser, (req, res, next) => {
+.put(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /announcements');
 })
 
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     Announcements.remove({})
     .then((resp)=> {
         res.statusCode = 200;
@@ -56,17 +56,17 @@ announceRouter.route('/:announceId')
     .catch((err) => next(err));
 })
 
-.post(authenticate.verifyUser, (req, res, next) => {
+.post(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     res.statusCode = 403;
     res.end('POST operation not supported on /announcements/'+ req.params.announceId);
 })
 
-.put(authenticate.verifyUser, (req, res, next) => {
+.put(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     Announcements.findByIdAndUpdate(req.params.announceId, {
         $set: req.body
     }, {new :true}) //return updated announcement
     .then((announcement) => {
-        console.log('Announcement Created', announcement);
+        console.log('Announcement Updated', announcement);
         res.statusCode = 200;
         res.setHeader('Content-Type','application/json');
         res.json(announcement);
@@ -74,7 +74,7 @@ announceRouter.route('/:announceId')
     .catch((err) => next(err));
 })
 
-.delete(authenticate.verifyUser, (req, res, next) =>{
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>{
     Announcements.findByIdAndRemove(req.params.announceId)
     .then((resp)=> {
         res.statusCode = 200;

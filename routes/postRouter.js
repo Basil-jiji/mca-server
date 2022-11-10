@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require("mongoose");
 const bodyParser = require('body-parser');
 const Posts = require('../models/posts');
 const authenticate = require('../authenticate');
@@ -22,28 +23,27 @@ postRouter.route('/')
 })
 
 .post(authenticate.verifyUser, (req, res, next) => {
-    Posts.create(req.body)
-    .then((post)=>{
-        if(post != null){
-            req.body.author = req.user_id
-            post.save()
+    Posts.find({})
+    if(req.body != null){
+        req.body.author = req.user._id  //valid user that is logged in
+        Posts.create(req.body)
         .then((post) => {
-            console.log('Post Created', post);
-            res.statusCode = 200;
-            res.setHeader('Content-Type','application/json');
-            res.json(post);
-    }, (err) => next(err))
-    
-}
-else{
-    err = new Error ('Post '+req.params.postId+' not found')
-    err.status = 404;
-    return next(err)
-}
-}, (err) => next(err))
-.catch((err) => next(err));
+            Posts.findById(post._id)
+            .populate('author')
+            .then((post) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(post);
+            })
+        }, (err) => next(err))
+        .catch((err) => next(err));
+    }
+    else {
+        err = new Error('Post not found in request body');
+        err.status = 404;
+        return next(err);
+    }
 })
-
 
 .put(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
@@ -61,14 +61,14 @@ else{
 })
 
 postRouter.route('/:postId')
-.get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => {res.sendStatus(200); })
+.get(cors.cors, (req, res, next) => {
     Posts.findById(req.params.postId)
-    .populate('post.author')
+    // .populate('author')
     .then((post) => {
-        console.log('Post Created', post);
-        res.statusCode = 200;
-        res.setHeader('Content-Type','application/json');
-        res.json(post);
+            res.statusCode = 200;
+            res.setHeader('Content-Type','application/json');
+            res.json(post);  //Find and return the specified comment
     }, (err) => next(err))
     .catch((err) => next(err));
 })
@@ -78,79 +78,62 @@ postRouter.route('/:postId')
     res.end('POST operation not supported on /posts/'+ req.params.postId);
 })
 
-.put(authenticate.verifyUser, (req, res, next) => {
-    Posts.findByIdAndUpdate(req.params.postId, {
-        $set: req.body
-    }, {new :true}) //return updated post
+.put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
+    Posts.findById(req.params.postId)
     .then((post) => {
-        if(post != null && post.id(req.params.postId) != null && post.id(req.params.id).author.equals(req.user._id)){
-        post.save()
-        .then((post) => {
-            Posts.findById(post._id)
-            .populate('post.author')
-
-        .then((post) => {
-            console.log('Post Created', post);
-            res.statusCode = 200;
-            res.setHeader('Content-Type','application/json');
-            res.json(post);
-        })
-        }, (err) => next(err))
-    } else if (post == null){
-        err = new Error ('Post '+req.params.postId+' not found')
-        err.status = 404;
-        return next(err);
-    }
-    else if(post.id(req.params.postId) == null){
-        err = new Error ('Post' + req.params.postId + 'Found');
-        err.status = 404;
-        return next(err)
-    }
-    else{
-        err = new Error ('You are not authorized to delete this post');
-        err.status = 403;
-        return next(err)
-    }
-        },(err) => next(err))
+        if(post != null) {
+            if(!post.author.equals(req.user._id)) {
+                var err = new Error('You are not authorized to update this post!');
+                err.status = 403;
+                return next(err);  
+            }
+            req.body.author = req.user._id;
+            Posts.findByIdAndUpdate(req.params.postId, {
+                $set: req.body
+            }, { new: true })
+            .then((post) => {
+                Posts.findById(post._id)
+                .populate('author')
+                .then((post) => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type','application/json');
+                    res.json(post);  
+                })
+            },(err) => next(err));
+        }
+        else {
+            err = new Error('Post '+ req.params.postId + 'not found');
+            err.status = 404;
+            return next(err);  
+        }
+    }, (err) => next(err))
     .catch((err) => next(err));
 })
 
 .delete(authenticate.verifyUser, (req, res, next) =>{
-    Posts.findByIdAndRemove(req.params.postId)
-    .then((post) => {
-        if(post != null && post.id(req.params.postId) != null && post.id(req.params.id).author.equals(req.user._id)){
-            post.id(req.params.postId).remove();
-            post.save()
-            .then((post) => {
-                Posts.findById(post._id)
-                .populate('author')
-    
-            .then((post) => {
+    Posts.findById(req.params.postId)
+    .then((post)=> {
+        if(post != null) {
+            if(!post.author.equals(req.user._id)){
+                var err = new Error('You are not authorized to delete this post!');
+                err.status = 403;
+                return next(err); 
+            }
+            Posts.findByIdAndRemove(req.params.postId)
+            .then((resp) => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type','application/json');
-                res.json(post);
-            })
-            })
+                res.json(resp);
+            },(err) => next(err))
+            .catch((err) => next(err));
         }
-        else if(post == null){
-            err = new Error ('Post Not Found');
+        else {
+            err = new Error('Post ' + req.params.postId +' not found');
             err.status = 404;
-            return next(err)
+            return next(err);  
         }
-        else if(post.id(req.params.postId) == null){
-            err = new Error ('Post' + req.params.postId + 'Found');
-            err.status = 404;
-            return next(err)
-        }
-        else{
-            err = new Error ('You are not authorized to delete this post');
-            err.status = 403;
-            return next(err)
-        }
-
-    },(err) => next(err))
+    }, (err) => next(err))
     .catch((err) => next(err));
 })
-
 
 module.exports = postRouter;

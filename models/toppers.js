@@ -13,7 +13,7 @@ const topperSchema = new Schema({
     },
     image:{
         type: String,
-        required: true
+        default: ''
     }
 })
 
