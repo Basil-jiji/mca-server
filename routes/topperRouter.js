@@ -11,7 +11,8 @@ topperRouter.use(bodyParser.json());
 
 
 topperRouter.route('/')
-.get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => {res.sendStatus(200); })
+.get(cors.cors,(req, res, next) => {
     Toppers.find({})
     .then((topper) => {
         res.statusCode = 200;
@@ -21,7 +22,7 @@ topperRouter.route('/')
     .catch((err) => next(err));
 })
 
-.post(cors.corsWithOptions,authenticate.verifyAdmin, authenticate.verifyUser, (req, res, next) => {
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Toppers.create(req.body)
     .then((topper) => {
         console.log('Topper Created', topper);
@@ -32,12 +33,12 @@ topperRouter.route('/')
     .catch((err) => next(err));
 })
 
-.put(authenticate.verifyAdmin, (req, res, next) => {
+.put(authenticate.verifyAdmin,authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /toppers');
 })
 
-.delete(cors.corsWithOptions,authenticate.verifyAdmin, (req, res, next) => {
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Toppers.remove({})
     .then((resp)=> {
         res.statusCode = 200;

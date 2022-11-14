@@ -11,7 +11,8 @@ postRouter.use(bodyParser.json());
 
 
 postRouter.route('/')
-.get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => {res.sendStatus(200); })
+.get(cors.cors,(req, res, next) => {
     Posts.find({})
     .populate('author')
     .then((posts) => {

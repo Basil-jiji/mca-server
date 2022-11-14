@@ -11,7 +11,8 @@ placementRouter.use(bodyParser.json());
 
 
 placementRouter.route('/')
-.get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => {res.sendStatus(200); })
+.get(cors.cors, (req, res, next) => {
     Placements.find({})
     .then((placement) => {
         res.statusCode = 200;
